@@ -4,19 +4,21 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { Button, Form, Jumbotron, Dropdown } from 'react-bootstrap';
 
 function App() {
-  const [dataNumber, setDataNumber] = useState(null)
+  const [dataLength, setDataLength] = useState(null)
   const [featureNumber, setFeatureNumber] = useState(null)
   const [featureArray, setFeatureArray] = useState([])
   const [linearValue, setLinearValue] = useState(null)
   const [normalValue, setNormalValue] = useState(null)
 
   useEffect(() => {
-    changeArray()
+    if (featureNumber > 0) {
+      changeArray()
+    } else setFeatureArray([])
   }, [featureNumber])
 
   function onChangeNumber(e, type) {
     if (type === "feature") setFeatureNumber(e.target.value)
-    else setDataNumber(e.target.value)
+    else setDataLength(e.target.value)
   }
 
   function linearDropdown(e) {
@@ -27,30 +29,34 @@ function App() {
   }
 
   function changeArray() {
-    if (featureNumber > 0) {
-      let arr = []
-      setFeatureArray([])
-      for (let i = 0; i < featureNumber; i++) {
-        arr.push({ key: i, from: null, to: null })
-      }
-      setFeatureArray(arr)
-    } else setFeatureArray([])
-
+    let arr = []
+    setFeatureArray([])
+    for (let i = 0; i < featureNumber; i++) {
+      arr.push({ key: i, from: null, to: null })
+    }
+    setFeatureArray(arr)
   }
 
   function changeFromTo(e, key, type) {
     let newArr = featureArray
     newArr.forEach(item => {
-      if (item.key === key) item[type] = e.target.value
+      if (item.key === key) item[type] = parseFloat(e.target.value)
     })
     setFeatureArray(newArr)
   }
 
   function getData() {
-    console.log('featureArray', featureArray)
-    console.log('linearValue', linearValue)
-    console.log('dataNumber', dataNumber)
-    console.log('normalValue', normalValue)
+    let arr = []
+    let linear = linearValue === "Doğrusal" ? 0.5 : 1
+    let temp = JSON.parse(JSON.stringify(featureArray));
+    for (let i = 0; i < dataLength; i++) {
+      let row = temp.map(item => {
+        let rand = item.from + (linear * Math.random()) * (item.to - item.from)
+        item.from = linearValue === "Doğrusal" ? rand : item.from
+        return { column: item.key, value: rand }
+      })
+      arr.push({ index: i, row })
+    }
   }
 
   let features = featureArray.map((item, key) => {
