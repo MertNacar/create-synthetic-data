@@ -47,16 +47,54 @@ function App() {
 
   function getData() {
     let arr = []
-    let linear = linearValue === "Doğrusal" ? 0.5 : 1
+    let concat = Array.from({ length: featureNumber }, () => "")
+    let linear = linearValue === "Doğrusal" ? 0.25 : 1
     let temp = JSON.parse(JSON.stringify(featureArray));
     for (let i = 0; i < dataLength; i++) {
       let row = temp.map(item => {
         let rand = item.from + (linear * Math.random()) * (item.to - item.from)
+        concat[item.key] += rand.toFixed(3) + ","
         item.from = linearValue === "Doğrusal" ? rand : item.from
-        return { column: item.key, value: rand }
+        return { column: item.key, value: rand.toFixed(3) }
       })
       arr.push({ index: i, row })
     }
+    if (normalValue === "min-max") {
+      concat.forEach((item, i) => {
+        let a = item.split(",")
+        a.pop()
+        let max = Math.max(...a)
+        let min = Math.min(...a)
+        arr.forEach(row => {
+          row.row[i].value = (row.row[i].value - parseFloat(min)) / (parseFloat(max) - parseFloat(min))
+        })
+      })
+    } else {
+      concat.forEach((item, i) => {
+        let a = item.split(",")
+        a.pop()
+        let total = 0
+        a.forEach(value => {
+          total += parseFloat(value)
+        })
+        let mean = total / a.length
+        console.log('mean', mean)
+        let varience = 0
+        a.forEach(dev => {
+          return varience += Math.pow((parseFloat(dev) - mean), 2)
+        })
+        console.log('varience', varience)
+        let varianceTotal = varience / a.length
+        console.log('varianceTotal', varianceTotal)
+        let deviation = Math.sqrt(varianceTotal)
+        console.log('deviation', deviation)
+        console.log('arr1', arr)
+        arr.forEach(row => {
+          row.row[i].value = ((row.row[i].value - mean) / deviation)
+        })
+      })
+    }
+    console.log('arr2', arr)
   }
 
   let features = featureArray.map((item, key) => {
