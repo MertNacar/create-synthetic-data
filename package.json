@@ -9,7 +9,10 @@
     "bootstrap": "^4.4.1",
     "react": "^16.12.0",
     "react-bootstrap": "^1.0.0-beta.16",
+    "react-data-export": "^0.6.0",
     "react-dom": "^16.12.0",
+    "react-json-excel": "^1.0.0",
+    "react-router-dom": "^5.1.2",
     "react-scripts": "3.4.0"
   },
   "scripts": {
