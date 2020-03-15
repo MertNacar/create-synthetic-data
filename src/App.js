@@ -2,22 +2,14 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Button, Form, Jumbotron, Dropdown } from 'react-bootstrap';
-import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  Link,
-} from "react-router-dom";
-import Excel from './Excel'
-
-function App() {
+import { connect } from 'react-redux'
+import { addExcel } from './store/excel/actionCreator'
+function App(props) {
   const [dataLength, setDataLength] = useState(null)
   const [featureNumber, setFeatureNumber] = useState(null)
-  const [field, setField] = useState({})
   const [featureArray, setFeatureArray] = useState([])
-  const [linearValue, setLinearValue] = useState(null)
   const [normalValue, setNormalValue] = useState(null)
-  const [final, setFinal] = useState([])
+  const [correlation, setCorrelation] = useState(null)
   const [fileName, setFileName] = useState("")
 
   useEffect(() => {
@@ -29,12 +21,10 @@ function App() {
   function onChange(e, type) {
     if (type === "feature") setFeatureNumber(e.target.value)
     else if (type === "data") setDataLength(e.target.value)
+    else if (type === "korelasyon") setCorrelation(e.target.value)
     else setFileName(e.target.value)
   }
 
-  function linearDropdown(e) {
-    setLinearValue(e.target.text)
-  }
   function normalizationDropdown(e) {
     setNormalValue(e.target.text)
   }
@@ -58,14 +48,14 @@ function App() {
 
   function generateData() {
     let arr = []
+    let fieldFeature = { "index": "index" }
     let concat = Array.from({ length: featureNumber }, () => "")
-    let linear = linearValue === "Doğrusal" ? 0.25 : 1
     let temp = JSON.parse(JSON.stringify(featureArray));
     for (let i = 0; i < dataLength; i++) {
       let row = temp.map(item => {
-        let rand = item.from + (linear * Math.random()) * (item.to - item.from)
+        let rand = item.from + (correlation * Math.random() * 0.25) * (item.to - item.from)
         concat[item.key] += rand.toFixed(3) + ","
-        item.from = linearValue === "Doğrusal" ? rand : item.from
+        item.from = rand
         return { value: rand.toFixed(3) }
       })
       arr.push({ row })
@@ -101,12 +91,10 @@ function App() {
         })
       })
     }
-    let fieldFeature = { "index": "index" }
     featureArray.forEach(item => {
       fieldFeature[`Oznitelik${item.key}`] = `Oznitelik ${item.key}`;
     })
 
-    setField(fieldFeature)
     let finalArr = []
     arr.forEach((item, i) => {
       let object = { "index": i }
@@ -115,14 +103,15 @@ function App() {
       })
       finalArr.push(object)
     })
-    setFinal(finalArr)
+
+    props.addExcel({ fileName, field: fieldFeature, final: finalArr })
   }
 
   let features = featureArray.map((item, key) => {
     return (
       <div key={key} className="row">
         <span className="col-3" />
-        <p className="col-2 text">Öznitelik {key} :</p>
+        <p className="col-2 text-center">Öznitelik {key} :</p>
         <input className="col-2 from" type="number" placeholder="from" onChange={(e) => changeFromTo(e, key, "from")} />
         <input className="col-2" type="number" placeholder="to" onChange={(e) => changeFromTo(e, key, "to")} />
         <span className="col-3" />
@@ -132,22 +121,6 @@ function App() {
 
   return (
     <div className="App">
-      <Router>
-        <ul>
-          <li>
-            <Link to="/excel">
-              Excel
-            </Link>
-          </li>
-        </ul>
-        <Switch>
-          <Route path='/' component={App} >
-            <Route path='/excel'>
-              <Excel field={field} final={final} fileName={fileName} />
-            </Route>
-          </Route>
-        </Switch>
-      </Router>
       <Form>
         <Jumbotron>
 
@@ -182,28 +155,6 @@ function App() {
 
           <br />
 
-
-          <div className="row">
-            <span className="col-5" />
-            <Dropdown>
-              <Dropdown.Toggle variant="primary">
-                doğrusallık
-              </Dropdown.Toggle>
-
-              <Dropdown.Menu onClick={(e) => linearDropdown(e)}>
-                <Dropdown.Item>Doğrusal</Dropdown.Item>
-                <Dropdown.Item>Doğrusal Olmayan</Dropdown.Item>
-              </Dropdown.Menu>
-
-            </Dropdown>
-
-
-            <span className="col-5" />
-          </div>
-
-          <br />
-          <br />
-
           <div className="row">
             <span className="col-5" />
             <Dropdown>
@@ -215,9 +166,17 @@ function App() {
                 <Dropdown.Item>z-score</Dropdown.Item>
                 <Dropdown.Item>min-max</Dropdown.Item>
               </Dropdown.Menu>
-
             </Dropdown>
 
+            <span className="col-5" />
+          </div>
+
+          <br />
+          <br />
+
+          <div className="row">
+            <span className="col-5" />
+            <input className="col-2" type="number" step="0.1" placeholder="Korelasyon Katsayısı" onChange={(e) => onChange(e, "korelasyon")} />
             <span className="col-5" />
           </div>
 
@@ -235,4 +194,12 @@ function App() {
   );
 }
 
-export default App;
+const mapDispatchToProps = dispatch => {
+  return {
+    addExcel: object => {
+      dispatch(addExcel(object))
+    }
+  }
+}
+
+export default connect(null, mapDispatchToProps)(App)

@@ -5,15 +5,14 @@ import { Jumbotron } from 'react-bootstrap';
 import {
   JsonToExcel
 } from 'react-json-excel';
+import './App.css';
+import { connect } from 'react-redux'
 
 function Excel(props) {
-  useEffect(() => {
-    console.log('hey')
-
-  }, [])
-  const [field, setField] = useState(props.field)
-  const [final, setFinal] = useState(props.final)
-  const [fileName, setFileName] = useState(props.fileName)
+  
+  const [field] = useState(props.excel.field || "")
+  const [final] = useState(props.excel.final || "")
+  const [fileName] = useState(props.excel.fileName || "")
 
   const className = 'col-4 btn btn-primary',
     style = {
@@ -21,20 +20,28 @@ function Excel(props) {
     }
 
   return (
-    <Jumbotron>
-      <div className="row">
-        <span className="col-4" />
-        <JsonToExcel
-          data={final}
-          className={className}
-          filename={fileName}
-          fields={field}
-          style={style}
-        />
-        <span className="col-4" />
+      <div className="App">
+        <Jumbotron>
+          <div className="row">
+            <span className="col-4" />
+            <JsonToExcel
+              data={final}
+              className={className}
+              filename={fileName}
+              fields={field}
+              style={style}
+            />
+            <span className="col-4" />
+          </div>
+        </Jumbotron >
       </div>
-    </Jumbotron >
   )
 }
 
-export default Excel
+const mapStateToProps = state => {
+  return {
+   excel : state.excel
+  }
+}
+
+export default connect(mapStateToProps, null)(Excel)
