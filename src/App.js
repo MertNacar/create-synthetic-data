@@ -3,13 +3,15 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Button, Form, Jumbotron, Dropdown } from 'react-bootstrap';
 import { connect } from 'react-redux'
+import { Redirect } from "react-router-dom";
 import { addExcel } from './store/excel/actionCreator'
 function App(props) {
   const [dataLength, setDataLength] = useState(null)
   const [featureNumber, setFeatureNumber] = useState(null)
   const [featureArray, setFeatureArray] = useState([])
-  const [normalValue, setNormalValue] = useState(null)
+  const [normalValue, setNormalValue] = useState("Normalizasyon")
   const [correlation, setCorrelation] = useState(null)
+  const [regression, setRegression] = useState(null)
   const [fileName, setFileName] = useState("")
 
   useEffect(() => {
@@ -18,10 +20,11 @@ function App(props) {
     } else setFeatureArray([])
   }, [featureNumber])
 
-  function onChange(e, type) {
-    if (type === "feature") setFeatureNumber(e.target.value)
+  function onChangeTxt(e, type) {
+    if (type === "feature" && e.target.value >= 2) setFeatureNumber(e.target.value)
     else if (type === "data") setDataLength(e.target.value)
     else if (type === "korelasyon") setCorrelation(e.target.value)
+    else if (type === "regrasyon") setRegression(e.target.value)
     else setFileName(e.target.value)
   }
 
@@ -48,6 +51,7 @@ function App(props) {
 
   function generateData() {
     let arr = []
+    let results = []
     let fieldFeature = { "index": "index" }
     let concat = Array.from({ length: featureNumber }, () => "")
     let temp = JSON.parse(JSON.stringify(featureArray));
@@ -61,24 +65,38 @@ function App(props) {
       arr.push({ row })
     }
     if (normalValue === "min-max") {
-      concat.forEach((item, i) => {
-        let a = item.split(",")
+      for (let i = concat.length - 1; i >= 0; i--) {
+        let last = concat[concat.length - 1].split(",")
+        let a = concat[i].split(",")
         a.pop()
-
         let max = Math.max(...a)
         let min = Math.min(...a)
-        arr.forEach(row => {
-          row.row[i].value = (row.row[i].value - parseFloat(min)) / (parseFloat(max) - parseFloat(min))
-        })
-      })
+        let total = 0
+        let totalPow = 0
+        let totalDiff = 0
+        for (let k = 0; k < a.length; k++) {
+          total += parseFloat(a[k])
+          totalPow += Math.pow(parseFloat(a[k]), 2)
+          totalDiff += (parseFloat(a[k]) * parseFloat(last[k]))
+        }
+        results.unshift({ index: i, total, totalPow, totalDiff })
+        for (let j = arr.length - 1; j >= 0; j--) {
+          arr[j].row[i].value = (arr[j].row[i].value - parseFloat(min)) / (parseFloat(max) - parseFloat(min))
+        }
+      }
     } else {
-      concat.forEach((item, i) => {
-        let a = item.split(",")
+      for (let i = concat.length - 1; i >= 0; i--) {
+        let last = concat[concat.length - 1].split(",")
+        let a = concat[i].split(",")
         a.pop()
         let total = 0
-        a.forEach(value => {
-          total += parseFloat(value)
-        })
+        let totalPow = 0
+        let totalDiff = 0
+        for (let k = 0; k < a.length; k++) {
+          total += parseFloat(a[k])
+          totalPow += Math.pow(parseFloat(a[k]), 2)
+          totalDiff += (parseFloat(a[k]) * parseFloat(last[k]))
+        }
         let mean = total / a.length
         let varience = 0
         a.forEach(dev => {
@@ -86,11 +104,14 @@ function App(props) {
         })
         let varianceTotal = varience / a.length
         let deviation = Math.sqrt(varianceTotal)
-        arr.forEach((row, ite) => {
-          row.row[i].value = ((parseFloat(row.row[i].value) - mean) / deviation)
-        })
-      })
+        results.unshift({ index: i, total, totalPow, totalDiff })
+        for (let j = arr.length - 1; j >= 0; j--) {
+          arr[j].row[i].value = ((parseFloat(arr[j].row[i].value) - mean) / deviation)
+        }
+      }
     }
+    console.log('results', results)
+    console.log('arr', arr)
     featureArray.forEach(item => {
       fieldFeature[`Oznitelik${item.key}`] = `Oznitelik ${item.key}`;
     })
@@ -105,20 +126,25 @@ function App(props) {
     })
 
     props.addExcel({ fileName, field: fieldFeature, final: finalArr })
+    return <Redirect to='/excel' />
   }
 
   let features = featureArray.map((item, key) => {
     return (
-      <div key={key} className="row">
-        <span className="col-3" />
-        <p className="col-2 text-center">Öznitelik {key} :</p>
-        <input className="col-2 from" type="number" placeholder="from" onChange={(e) => changeFromTo(e, key, "from")} />
-        <input className="col-2" type="number" placeholder="to" onChange={(e) => changeFromTo(e, key, "to")} />
-        <span className="col-3" />
+      <div key={key}>
+        <div className="row">
+          <span className="col-3" />
+          <p className="col-2 text-center">Öznitelik {key} :</p>
+          <input className="col-2 from" type="number" placeholder="from" onChange={(e) => changeFromTo(e, key, "from")} />
+          <input className="col-2" type="number" placeholder="to" onChange={(e) => changeFromTo(e, key, "to")} />
+          <span className="col-3" />
+        </div>
+        <br />
       </div>
     )
   })
 
+  let displayButton = normalValue !== "Normalizasyon" && dataLength && featureNumber && fileName && correlation && featureArray.length > 0
   return (
     <div className="App">
       <Form>
@@ -126,7 +152,7 @@ function App(props) {
 
           <div className="row">
             <span className="col-5" />
-            <input className="col-2" type="input" placeholder="Dosya İsmi" onChange={(e) => onChange(e, "name")} />
+            <input className="col-2" type="input" placeholder="Dosya İsmi" onChange={(e) => onChangeTxt(e, "name")} />
             <span className="col-5" />
           </div>
 
@@ -135,7 +161,7 @@ function App(props) {
 
           <div className="row">
             <span className="col-5" />
-            <input className="col-2" type="number" placeholder="Veri Sayısı" onChange={(e) => onChange(e, "data")} />
+            <input className="col-2" type="number" step="100" placeholder="Veri Sayısı" onChange={(e) => onChangeTxt(e, "data")} />
             <span className="col-5" />
           </div>
 
@@ -144,7 +170,7 @@ function App(props) {
 
           <div className="row">
             <span className="col-5" />
-            <input className="col-2" type="number" placeholder="Öznitelik Sayısı" onChange={(e) => onChange(e, "feature")} />
+            <input className="col-2" type="number" step="0.1" placeholder="Öznitelik Sayısı (En az 2 - dinamik)" onChange={(e) => onChangeTxt(e, "feature")} />
             <span className="col-5" />
           </div>
 
@@ -159,7 +185,7 @@ function App(props) {
             <span className="col-5" />
             <Dropdown>
               <Dropdown.Toggle variant="primary">
-                normalizasyon
+                {normalValue}
               </Dropdown.Toggle>
 
               <Dropdown.Menu onClick={(e) => normalizationDropdown(e)}>
@@ -176,8 +202,19 @@ function App(props) {
 
           <div className="row">
             <span className="col-5" />
-            <input className="col-2" type="number" step="0.1" placeholder="Korelasyon Katsayısı" onChange={(e) => onChange(e, "korelasyon")} />
+            <input className="col-2" type="number" step="0.1" placeholder="Korelasyon Katsayısı" onChange={(e) => onChangeTxt(e, "korelasyon")} />
             <span className="col-5" />
+          </div>
+
+          <br />
+          <br />
+
+
+          <div className="row">
+            <span className="col-3" />
+            <p className="col-2 text-right">Regrasyon İşlevi:</p>
+            <input className="col-2" type="number" placeholder="Regrasyon" onChange={(e) => onChangeTxt(e, "regrasyon")} />
+            <span className="col-3" />
           </div>
 
           <br />
@@ -185,7 +222,7 @@ function App(props) {
 
           <div className="row">
             <span className="col-5" />
-            <Button className="col-2" onClick={() => generateData()}>Oluştur</Button>
+            <Button disabled={!displayButton} className="col-2" onClick={() => generateData()}>Tamam</Button>
             <span className="col-5" />
           </div>
         </Jumbotron>
