@@ -55,15 +55,34 @@ function App(props) {
     let fieldFeature = { "index": "index" }
     let concat = Array.from({ length: featureNumber }, () => "")
     let temp = JSON.parse(JSON.stringify(featureArray));
+    console.log('featureArray', featureArray)
+
     for (let i = 0; i < dataLength; i++) {
-      let row = temp.map(item => {
-        let rand = item.from + (correlation * Math.random() * 0.25) * (item.to - item.from)
-        concat[item.key] += rand.toFixed(3) + ","
-        item.from = rand
-        return { value: rand.toFixed(3) }
+      let row = temp.map((itemTemp, index, array) => {
+        let item = array[array.length - 1 - index]
+        let diffItem = item.to - parseFloat(item.from)
+        let random;
+        console.log('for i',i)
+        console.log('row index',index)
+        console.log('item.from', item.from)
+        if (i === 0 || (array.length - 1 - index) === (featureNumber - 1)) {
+          random = 1
+        } else {
+          console.log('item eski', arr[i - 1].row[array.length - 1 - index].value)
+          console.log('son yeni', array[array.length - 1].from)
+          console.log('son eski', arr[i - 1].row[featureNumber - 1].value)
+          random = correlation * arr[i - 1].row[array.length - 1 - index].value * (array[array.length - 1].from / arr[i - 1].row[featureNumber - 1].value)
+        }
+        let rand = parseFloat(item.from) + (Math.random() * (diffItem / dataLength) * random) * diffItem
+        concat[item.key] += rand.toFixed(2) + ","
+
+        item.from = rand.toFixed(2)
+        return { value: rand.toFixed(2) }
       })
       arr.push({ row })
+
     }
+
     if (normalValue === "min-max") {
       for (let i = concat.length - 1; i >= 0; i--) {
         let last = concat[concat.length - 1].split(",")
@@ -78,12 +97,16 @@ function App(props) {
           total += parseFloat(a[k])
           totalPow += Math.pow(parseFloat(a[k]), 2)
           totalDiff += (parseFloat(a[k]) * parseFloat(last[k]))
+          total = parseFloat(total.toFixed(1))
+          totalPow = parseFloat(totalPow.toFixed(1))
+          totalDiff = parseFloat(totalDiff.toFixed(1))
         }
         results.unshift({ index: i, total, totalPow, totalDiff })
         for (let j = arr.length - 1; j >= 0; j--) {
-          arr[j].row[i].value = (arr[j].row[i].value - parseFloat(min)) / (parseFloat(max) - parseFloat(min))
+          arr[j].row[i].value = (parseFloat(arr[j].row[i].value) - min) / (max - min)
         }
       }
+
     } else {
       for (let i = concat.length - 1; i >= 0; i--) {
         let last = concat[concat.length - 1].split(",")
@@ -96,6 +119,9 @@ function App(props) {
           total += parseFloat(a[k])
           totalPow += Math.pow(parseFloat(a[k]), 2)
           totalDiff += (parseFloat(a[k]) * parseFloat(last[k]))
+          total = parseFloat(total.toFixed(1))
+          totalPow = parseFloat(totalPow.toFixed(1))
+          totalDiff = parseFloat(totalDiff.toFixed(1))
         }
         let mean = total / a.length
         let varience = 0
@@ -110,8 +136,20 @@ function App(props) {
         }
       }
     }
+
+    results.map((item, indx, array) => {
+      let last = array[results.length - 1]
+      let correPay = (dataLength * item.totalDiff) - (last.total * item.total)
+      let correPayda1 = Math.sqrt((dataLength * last.totalPow) - Math.pow(last.total, 2))
+      let correPayda2 = Math.sqrt((dataLength * item.totalPow) - Math.pow(item.total, 2))
+      item.corre = correPay / (correPayda1 * correPayda2)
+    })
+
+    delete results[results.length - 1].totalDiff
+    delete results[results.length - 1].corre
     console.log('results', results)
     console.log('arr', arr)
+    console.log('typeof Infinity', typeof Infinity)
     featureArray.forEach(item => {
       fieldFeature[`Oznitelik${item.key}`] = `Oznitelik ${item.key}`;
     })
