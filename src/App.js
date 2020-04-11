@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Button, Form, Jumbotron, Dropdown } from 'react-bootstrap';
 import { connect } from 'react-redux'
-import { Redirect } from "react-router-dom";
+import { withRouter } from "react-router-dom";
 import { addExcel } from './store/excel/actionCreator'
 function App(props) {
   const [dataLength, setDataLength] = useState(null)
@@ -12,7 +11,7 @@ function App(props) {
   const [normalValue, setNormalValue] = useState("Normalizasyon")
   const [correlation, setCorrelation] = useState(null)
   const [regression, setRegression] = useState(null)
-  const [fileName, setFileName] = useState("")
+  const [fileName, setFileName] = useState("odev_veriseti")
 
   useEffect(() => {
     if (featureNumber > 0) {
@@ -21,11 +20,15 @@ function App(props) {
   }, [featureNumber])
 
   function onChangeTxt(e, type) {
-    if (type === "feature" && e.target.value >= 2) setFeatureNumber(e.target.value)
-    else if (type === "data") setDataLength(e.target.value)
+    if (type === "data") setDataLength(e.target.value)
     else if (type === "korelasyon") setCorrelation(e.target.value)
     else if (type === "regrasyon") setRegression(e.target.value)
     else setFileName(e.target.value)
+  }
+
+  function onChangeFeature(e) {
+    if (e.target.value >= 2) setFeatureNumber(e.target.value)
+    else setFeatureNumber(0)
   }
 
   function normalizationDropdown(e) {
@@ -56,87 +59,70 @@ function App(props) {
     let concat = Array.from({ length: featureNumber }, () => "")
     let temp = JSON.parse(JSON.stringify(featureArray));
     console.log('featureArray', featureArray)
-
+    let rand;
+    let random
     for (let i = 0; i < dataLength; i++) {
       let row = temp.map((itemTemp, index, array) => {
         let item = array[array.length - 1 - index]
         let diffItem = item.to - parseFloat(item.from)
         diffItem = parseFloat(diffItem.toFixed(2))
-        let random;
         console.log('for i', i)
         console.log('row index', index)
-        if (i === 0 || (array.length - 1 - index) === (featureNumber - 1)) {
+        if (i === 0 || (item.key) === (featureNumber - 1)) {
           random = 1
         } else {
-          random = correlation * arr[i - 1].row[index].value * (array[array.length - 1].from / arr[i - 1].row[array.length - 1 - index].value)
+          random = correlation * (array[array.length - 1].from / arr[i - 1].row[array.length - 1 - index].value)
           random = parseFloat(random.toFixed(2))
         }
-        let rand = parseFloat(item.from) + (Math.random() * (diffItem / dataLength)) * diffItem * random
-
-        console.log('random', random)
-        concat[item.key] += rand.toFixed(2) + ","
-
+        rand = parseFloat(item.from) + (Math.random() * (diffItem / dataLength)) * diffItem * random
         item.from = rand.toFixed(2)
+        concat[item.key] += item.from + ","
+        //item.from = rand.toFixed(2)
         console.log('item.from Yeni', item.from)
-        return { value: rand.toFixed(2) }
+        return { index: item.key, value: item.from }
       })
       arr.push({ row })
 
     }
 
-    if (normalValue === "min-max") {
-      for (let i = concat.length - 1; i >= 0; i--) {
-        let last = concat[concat.length - 1].split(",")
-        let a = concat[i].split(",")
-        a.pop()
+    for (let i = concat.length - 1; i >= 0; i--) {
+      let last = concat[concat.length - 1].split(",")
+      let a = concat[i].split(",")
+      a.pop()
+      let total = 0
+      let totalPow = 0
+      let totalDiff = 0
+      for (let k = 0; k < a.length; k++) {
+        total += parseFloat(a[k])
+        totalPow += Math.pow(parseFloat(a[k]), 2)
+        totalDiff += (parseFloat(a[k]) * parseFloat(last[k]))
+        total = parseFloat(total.toFixed(1))
+        totalPow = parseFloat(totalPow.toFixed(1))
+        totalDiff = parseFloat(totalDiff.toFixed(1))
+      }
+      let mean = total / a.length
+      mean = parseFloat(mean.toFixed(2))
+      let varience = 0
+      a.forEach(dev => {
+        return varience += Math.pow((parseFloat(dev) - mean), 2)
+      })
+      let varianceTotal = varience / a.length
+      let deviation = Math.sqrt(varianceTotal)
+      deviation = parseFloat(deviation.toFixed(2))
+      results.unshift({ index: i, total, totalPow, totalDiff, mean, deviation })
+      if (normalValue === "min-max") {
         let max = Math.max(...a)
         let min = Math.min(...a)
-        let total = 0
-        let totalPow = 0
-        let totalDiff = 0
-        for (let k = 0; k < a.length; k++) {
-          total += parseFloat(a[k])
-          totalPow += Math.pow(parseFloat(a[k]), 2)
-          totalDiff += (parseFloat(a[k]) * parseFloat(last[k]))
-          total = parseFloat(total.toFixed(1))
-          totalPow = parseFloat(totalPow.toFixed(1))
-          totalDiff = parseFloat(totalDiff.toFixed(1))
-        }
-        results.unshift({ index: i, total, totalPow, totalDiff })
         for (let j = arr.length - 1; j >= 0; j--) {
           arr[j].row[i].value = (parseFloat(arr[j].row[i].value) - min) / (max - min)
         }
-      }
-
-    } else {
-      for (let i = concat.length - 1; i >= 0; i--) {
-        let last = concat[concat.length - 1].split(",")
-        let a = concat[i].split(",")
-        a.pop()
-        let total = 0
-        let totalPow = 0
-        let totalDiff = 0
-        for (let k = 0; k < a.length; k++) {
-          total += parseFloat(a[k])
-          totalPow += Math.pow(parseFloat(a[k]), 2)
-          totalDiff += (parseFloat(a[k]) * parseFloat(last[k]))
-          total = parseFloat(total.toFixed(1))
-          totalPow = parseFloat(totalPow.toFixed(1))
-          totalDiff = parseFloat(totalDiff.toFixed(1))
-        }
-        let mean = total / a.length
-        let varience = 0
-        a.forEach(dev => {
-          return varience += Math.pow((parseFloat(dev) - mean), 2)
-        })
-        let varianceTotal = varience / a.length
-        let deviation = Math.sqrt(varianceTotal)
-        results.unshift({ index: i, total, totalPow, totalDiff })
+      } else {
         for (let j = arr.length - 1; j >= 0; j--) {
           arr[j].row[i].value = ((parseFloat(arr[j].row[i].value) - mean) / deviation)
         }
       }
     }
+
 
     results.map((item, indx, array) => {
       let last = array[results.length - 1]
@@ -150,7 +136,6 @@ function App(props) {
     delete results[results.length - 1].corre
     console.log('results', results)
     console.log('arr', arr)
-    console.log('typeof Infinity', typeof Infinity)
     featureArray.forEach(item => {
       fieldFeature[`Oznitelik${item.key}`] = `Oznitelik ${item.key}`;
     })
@@ -159,13 +144,17 @@ function App(props) {
     arr.forEach((item, i) => {
       let object = { "index": i }
       item.row.forEach((values, ite) => {
-        object[`Oznitelik${ite}`] = values.value
+        object[`Oznitelik${values.index}`] = values.value
       })
       finalArr.push(object)
     })
 
     props.addExcel({ fileName, field: fieldFeature, final: finalArr })
-    return <Redirect to='/excel' />
+    //goExcelScreen()
+  }
+
+  function goExcelScreen() {
+    props.history.push("/excel");
   }
 
   let features = featureArray.map((item, key) => {
@@ -191,7 +180,7 @@ function App(props) {
 
           <div className="row">
             <span className="col-5" />
-            <input className="col-2" type="input" placeholder="Dosya İsmi" onChange={(e) => onChangeTxt(e, "name")} />
+            <input className="col-2" value={fileName} type="input" placeholder="Dosya İsmi" onChange={(e) => onChangeTxt(e, "name")} />
             <span className="col-5" />
           </div>
 
@@ -209,7 +198,7 @@ function App(props) {
 
           <div className="row">
             <span className="col-5" />
-            <input className="col-2" type="number" step="0.1" placeholder="Öznitelik Sayısı (En az 2 - dinamik)" onChange={(e) => onChangeTxt(e, "feature")} />
+            <input className="col-2" type="number" step="0.1" placeholder="Öznitelik Sayısı (En az 2 - dinamik)" onChange={(e) => onChangeFeature(e)} />
             <span className="col-5" />
           </div>
 
@@ -250,11 +239,12 @@ function App(props) {
 
 
           <div className="row">
-            <span className="col-3" />
-            <p className="col-2 text-right">Regrasyon İşlevi:</p>
-            <input className="col-2" type="number" placeholder="Regrasyon" onChange={(e) => onChangeTxt(e, "regrasyon")} />
-            <span className="col-3" />
+            <span className="col-1" />
+            <p className="col-4 text-right">Regrasyon :</p>
+            <p className="col-5" >y = mx(n) + ... + m(1) + b, (n = öznitelik sayısı)</p>
+            <span className="col-2" />
           </div>
+
 
           <br />
           <br />
@@ -278,4 +268,4 @@ const mapDispatchToProps = dispatch => {
   }
 }
 
-export default connect(null, mapDispatchToProps)(App)
+export default connect(null, mapDispatchToProps)(withRouter(App))

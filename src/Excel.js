@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Jumbotron } from 'react-bootstrap';
 import {
   JsonToExcel
 } from 'react-json-excel';
-import './App.css';
 import { connect } from 'react-redux'
 
 function Excel(props) {
