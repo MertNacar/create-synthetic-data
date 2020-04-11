@@ -61,22 +61,23 @@ function App(props) {
       let row = temp.map((itemTemp, index, array) => {
         let item = array[array.length - 1 - index]
         let diffItem = item.to - parseFloat(item.from)
+        diffItem = parseFloat(diffItem.toFixed(2))
         let random;
-        console.log('for i',i)
-        console.log('row index',index)
-        console.log('item.from', item.from)
+        console.log('for i', i)
+        console.log('row index', index)
         if (i === 0 || (array.length - 1 - index) === (featureNumber - 1)) {
           random = 1
         } else {
-          console.log('item eski', arr[i - 1].row[array.length - 1 - index].value)
-          console.log('son yeni', array[array.length - 1].from)
-          console.log('son eski', arr[i - 1].row[featureNumber - 1].value)
-          random = correlation * arr[i - 1].row[array.length - 1 - index].value * (array[array.length - 1].from / arr[i - 1].row[featureNumber - 1].value)
+          random = correlation * arr[i - 1].row[index].value * (array[array.length - 1].from / arr[i - 1].row[array.length - 1 - index].value)
+          random = parseFloat(random.toFixed(2))
         }
-        let rand = parseFloat(item.from) + (Math.random() * (diffItem / dataLength) * random) * diffItem
+        let rand = parseFloat(item.from) + (Math.random() * (diffItem / dataLength)) * diffItem * random
+
+        console.log('random', random)
         concat[item.key] += rand.toFixed(2) + ","
 
         item.from = rand.toFixed(2)
+        console.log('item.from Yeni', item.from)
         return { value: rand.toFixed(2) }
       })
       arr.push({ row })
