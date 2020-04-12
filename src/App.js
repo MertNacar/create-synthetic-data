@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import { Button, Form, Jumbotron, Dropdown } from 'react-bootstrap';
 import { connect } from 'react-redux'
 import { withRouter } from "react-router-dom";
 import { addExcel } from './store/excel/actionCreator'
+import { pageReady } from './store/ready/actionCreator'
 function App(props) {
   const [dataLength, setDataLength] = useState(null)
   const [featureNumber, setFeatureNumber] = useState(null)
   const [featureArray, setFeatureArray] = useState([])
   const [normalValue, setNormalValue] = useState("Normalizasyon")
   const [correlation, setCorrelation] = useState(null)
-  const [regression, setRegression] = useState(null)
+  const [regression, setRegression] = useState("y = mx(n) + ... + m(1) + b, (n = öznitelik sayısı)")
   const [fileName, setFileName] = useState("odev_veriseti")
 
   useEffect(() => {
     if (featureNumber > 0) {
+      props.pageReady(false)
       changeArray()
     } else setFeatureArray([])
   }, [featureNumber])
@@ -58,27 +59,23 @@ function App(props) {
     let fieldFeature = { "index": "index" }
     let concat = Array.from({ length: featureNumber }, () => "")
     let temp = JSON.parse(JSON.stringify(featureArray));
-    console.log('featureArray', featureArray)
     let rand;
-    let random
+    let random;
     for (let i = 0; i < dataLength; i++) {
       let row = temp.map((itemTemp, index, array) => {
         let item = array[array.length - 1 - index]
         let diffItem = item.to - parseFloat(item.from)
-        diffItem = parseFloat(diffItem.toFixed(2))
-        console.log('for i', i)
-        console.log('row index', index)
+        let diffLen = diffItem / dataLength
         if (i === 0 || (item.key) === (featureNumber - 1)) {
           random = 1
         } else {
           random = correlation * (array[array.length - 1].from / arr[i - 1].row[array.length - 1 - index].value)
           random = parseFloat(random.toFixed(2))
         }
-        rand = parseFloat(item.from) + (Math.random() * (diffItem / dataLength)) * diffItem * random
+        rand = parseFloat(item.from) + (Math.random() * diffLen) * diffItem * random
         item.from = rand.toFixed(2)
         concat[item.key] += item.from + ","
-        //item.from = rand.toFixed(2)
-        console.log('item.from Yeni', item.from)
+
         return { index: item.key, value: item.from }
       })
       arr.push({ row })
@@ -114,28 +111,40 @@ function App(props) {
         let max = Math.max(...a)
         let min = Math.min(...a)
         for (let j = arr.length - 1; j >= 0; j--) {
-          arr[j].row[i].value = (parseFloat(arr[j].row[i].value) - min) / (max - min)
+          arr[j].row[i].value = parseFloat((parseFloat(arr[j].row[i].value) - min) / (max - min).toFixed(3))
         }
       } else {
         for (let j = arr.length - 1; j >= 0; j--) {
-          arr[j].row[i].value = ((parseFloat(arr[j].row[i].value) - mean) / deviation)
+          arr[j].row[i].value = parseFloat(((parseFloat(arr[j].row[i].value) - mean) / deviation).toFixed(3))
         }
       }
     }
 
-
+    let regEquation = `${results[results.length - 1].mean} =`
+    let slopes = []
     results.map((item, indx, array) => {
       let last = array[results.length - 1]
       let correPay = (dataLength * item.totalDiff) - (last.total * item.total)
       let correPayda1 = Math.sqrt((dataLength * last.totalPow) - Math.pow(last.total, 2))
       let correPayda2 = Math.sqrt((dataLength * item.totalPow) - Math.pow(item.total, 2))
       item.corre = correPay / (correPayda1 * correPayda2)
+      item.mx = parseFloat((last.deviation / item.deviation).toFixed(2))
+      let mx = (last.deviation / item.deviation).toFixed(2) + "x" + indx
+      slopes.push(mx)
     })
+
+    slopes.pop()
+    let b;
+    let sum = 0
+    for (let i = 0; i < results.length - 1; i++) {
+      sum += results[i].mx * results[i].mean
+    }
+    b = results[results.length - 1].mean - parseFloat(sum.toFixed(2))
+    regEquation += ` ${slopes.join(" + ")} + b, b = ${b.toFixed(2)}`
+    setRegression(regEquation)
 
     delete results[results.length - 1].totalDiff
     delete results[results.length - 1].corre
-    console.log('results', results)
-    console.log('arr', arr)
     featureArray.forEach(item => {
       fieldFeature[`Oznitelik${item.key}`] = `Oznitelik ${item.key}`;
     })
@@ -148,9 +157,9 @@ function App(props) {
       })
       finalArr.push(object)
     })
-
     props.addExcel({ fileName, field: fieldFeature, final: finalArr })
-    //goExcelScreen()
+    props.pageReady(true)
+
   }
 
   function goExcelScreen() {
@@ -162,7 +171,7 @@ function App(props) {
       <div key={key}>
         <div className="row">
           <span className="col-3" />
-          <p className="col-2 text-center">Öznitelik {key} :</p>
+          <p className="col-2 text-right">Öznitelik {key} :</p>
           <input className="col-2 from" type="number" placeholder="from" onChange={(e) => changeFromTo(e, key, "from")} />
           <input className="col-2" type="number" placeholder="to" onChange={(e) => changeFromTo(e, key, "to")} />
           <span className="col-3" />
@@ -179,7 +188,8 @@ function App(props) {
         <Jumbotron>
 
           <div className="row">
-            <span className="col-5" />
+            <span className="col-3" />
+            <p className="col-2 text-right">Dosya İsmi :</p>
             <input className="col-2" value={fileName} type="input" placeholder="Dosya İsmi" onChange={(e) => onChangeTxt(e, "name")} />
             <span className="col-5" />
           </div>
@@ -188,8 +198,9 @@ function App(props) {
           <br />
 
           <div className="row">
-            <span className="col-5" />
-            <input className="col-2" type="number" step="100" placeholder="Veri Sayısı" onChange={(e) => onChangeTxt(e, "data")} />
+            <span className="col-3" />
+            <p className="col-2 text-right">Veri Sayısı :</p>
+            <input className="col-2" type="number" step="500" placeholder="500 ve daha fazla" onChange={(e) => onChangeTxt(e, "data")} />
             <span className="col-5" />
           </div>
 
@@ -197,8 +208,9 @@ function App(props) {
           <br />
 
           <div className="row">
-            <span className="col-5" />
-            <input className="col-2" type="number" step="0.1" placeholder="Öznitelik Sayısı (En az 2 - dinamik)" onChange={(e) => onChangeFeature(e)} />
+            <span className="col-3" />
+            <p className="col-2 text-right">Öznitelik Sayısı :</p>
+            <input className="col-2" type="number" step="0.1" placeholder="En az 2 - dinamik" onChange={(e) => onChangeFeature(e)} />
             <span className="col-5" />
           </div>
 
@@ -229,9 +241,10 @@ function App(props) {
           <br />
 
           <div className="row">
-            <span className="col-5" />
-            <input className="col-2" type="number" step="0.1" placeholder="Korelasyon Katsayısı" onChange={(e) => onChangeTxt(e, "korelasyon")} />
-            <span className="col-5" />
+            <span className="col-3" />
+            <p className="col-2 text-right">Korelasyon Katsayısı :</p>
+            <input className="col-2" type="number" step="0.1" placeholder="0 - 1 arası" onChange={(e) => onChangeTxt(e, "korelasyon")} />
+            <span className="col-4" />
           </div>
 
           <br />
@@ -239,9 +252,9 @@ function App(props) {
 
 
           <div className="row">
-            <span className="col-1" />
-            <p className="col-4 text-right">Regrasyon :</p>
-            <p className="col-5" >y = mx(n) + ... + m(1) + b, (n = öznitelik sayısı)</p>
+            <span className="col-3" />
+            <p className="col-2 text-right">Regrasyon :</p>
+            <p className="col-5 font-weight-bold" >{regression}</p>
             <span className="col-2" />
           </div>
 
@@ -254,18 +267,39 @@ function App(props) {
             <Button disabled={!displayButton} className="col-2" onClick={() => generateData()}>Tamam</Button>
             <span className="col-5" />
           </div>
+
+          <br />
+          <br />
+
+          <div className="row">
+            <span className="col-5" />
+            <Button disabled={!props.page} className="col-2" onClick={() => goExcelScreen()}>Excel sayfasına git</Button>
+            <span className="col-5" />
+          </div>
         </Jumbotron>
       </Form>
     </div>
   );
 }
 
+
+
+const mapStateToProps = state => {
+  return {
+    page: state.page
+  }
+}
+
+
 const mapDispatchToProps = dispatch => {
   return {
     addExcel: object => {
       dispatch(addExcel(object))
+    },
+    pageReady: ready => {
+      dispatch(pageReady(ready))
     }
   }
 }
 
-export default connect(null, mapDispatchToProps)(withRouter(App))
+export default connect(mapStateToProps, mapDispatchToProps)(withRouter(App))
