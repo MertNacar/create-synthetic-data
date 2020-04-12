@@ -12,7 +12,7 @@ function App(props) {
   const [normalValue, setNormalValue] = useState("Normalizasyon")
   const [correlation, setCorrelation] = useState(null)
   const [regression, setRegression] = useState("y = mx(0) + ... + mx(n-1) + b, (n = bağımsız öznitelik sayısı)")
-  const [fileName, setFileName] = useState("odev_veriseti")
+  const [fileName, setFileName] = useState("")
 
   useEffect(() => {
     if (featureNumber > 0) {
@@ -23,9 +23,12 @@ function App(props) {
 
   function onChangeTxt(e, type) {
     if (type === "data") setDataLength(e.target.value)
-    else if (type === "korelasyon") setCorrelation(e.target.value)
+    else if (type === "korelasyon") {
+      if (e.target.value > 0 && e.target.value <= 1) setCorrelation(e.target.value)
+    }
+
     else if (type === "regrasyon") setRegression(e.target.value)
-    else setFileName(e.target.value)
+    else if (type === "name") setFileName(e.target.value)
   }
 
   function onChangeFeature(e) {
@@ -191,7 +194,7 @@ function App(props) {
           <div className="row">
             <span className="col-3" />
             <p className="col-2 text-right">Dosya İsmi :</p>
-            <input className="col-2" value={fileName} type="input" placeholder="Dosya İsmi" onChange={(e) => onChangeTxt(e, "name")} />
+            <input className="col-2" type="input" placeholder="Dosya İsmi" onChange={(e) => onChangeTxt(e, "name")} />
             <span className="col-5" />
           </div>
 
