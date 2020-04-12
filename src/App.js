@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 import { Button, Form, Jumbotron, Dropdown } from 'react-bootstrap';
 import { connect } from 'react-redux'
 import { withRouter } from "react-router-dom";
@@ -10,7 +11,7 @@ function App(props) {
   const [featureArray, setFeatureArray] = useState([])
   const [normalValue, setNormalValue] = useState("Normalizasyon")
   const [correlation, setCorrelation] = useState(null)
-  const [regression, setRegression] = useState("y = mx(n) + ... + m(1) + b, (n = öznitelik sayısı)")
+  const [regression, setRegression] = useState("y = mx(0) + ... + mx(n-1) + b, (n = bağımsız öznitelik sayısı)")
   const [fileName, setFileName] = useState("odev_veriseti")
 
   useEffect(() => {
