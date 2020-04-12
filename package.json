@@ -1,4 +1,5 @@
 {
+  "homepage": "https://mertnacar.github.io/create-synthetic-data",
   "name": "sentetik-veri",
   "version": "0.1.0",
   "private": true,
@@ -22,6 +23,8 @@
     "source-map-loader": "^0.2.4"
   },
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
     "start": "webpack-dev-server --mode development --open --hot --noEmit",
     "build": "webpack --mode production",
     "test": "react-scripts test",
@@ -45,6 +48,7 @@
   "devDependencies": {
     "copy-webpack-plugin": "^5.1.1",
     "css-loader": "^3.5.2",
+    "gh-pages": "^2.2.0",
     "less-loader": "^5.0.0",
     "style-loader": "^1.1.3",
     "webpack-cli": "^3.3.11"

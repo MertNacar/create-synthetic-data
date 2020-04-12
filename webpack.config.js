@@ -4,7 +4,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 const webpack = {
   entry: './src/index.js',
   devServer: {
-    contentBase: path.join(__dirname, 'dist'),
+    contentBase: path.join(__dirname, 'build'),
     compress: true,
     port: 3000,
     historyApiFallback: true
@@ -13,7 +13,7 @@ const webpack = {
     extensions: ['.js']
   },
   output: {
-    path: path.join(__dirname, 'dist'),
+    path: path.join(__dirname, 'build'),
     filename: 'bundle.js',
   },
   module: {
