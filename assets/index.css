@@ -1,8 +1,6 @@
 html,
 body,
-.App,
-.root,
-.excel {
+#root {
   width: 100%;
   overflow-x: hidden;
 }
